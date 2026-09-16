@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ambientejs_db_1
+    restart: always
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: ambientedb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ambientejs_portgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: node_backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      PORT: 3000
+      DATABASE_URL: "postgresql://devuser:devpassword@db:5432/ambientedb?schema=public"
+     # Nota: Não precisamos mais expor a porta 3000 para fora (3000:3000), 
+     # pois o Nginx conversará com o backend pela rede interna do Docker.
+     #ports:
+     #  - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+    
+  frontend:
+    build: ./frontend
+    container_name: nginx_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/public:/usr/share/nginx/html
+
+volumes:
+  ambientejs_portgres_data:
